@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Brainrot Karts</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏎️</text></svg>" />
+</head>
+<body>
+  <canvas id="c"></canvas>
+
+  <!-- ============================== IN-GAME HUD ============================== -->
+  <div id="hud" class="hidden">
+    <div id="vignette"></div>
+    <div id="speedlines"></div>
+    <div id="hud-top">
+      <div id="hp"><span class="ico">♥</span><div class="bar"><div id="hpfill"></div><span id="hptxt">100</span></div></div>
+      <div id="timerpill"><span class="ico">🕒</span><span id="timer">3:00</span></div>
+    </div>
+    <div id="myscore"><span id="myk">0</span> <small>KILLS</small></div>
+    <div id="rankpill"><b id="rank">1st</b><span id="rankof">/ 1</span></div>
+    <div id="lb"></div>
+    <div id="feed"></div>
+    <canvas id="minimap" width="200" height="200"></canvas>
+    <div id="bottom-left">
+      <div id="driftbar"><div id="driftfill"></div></div>
+    </div>
+    <div id="itembox">
+      <div id="itemicon"></div>
+      <div id="itemname"></div>
+      <div id="itemammo"></div>
+    </div>
+    <div id="hitmarker"></div>
+    <div id="banner"></div>
+    <div id="streak"></div>
+    <div id="center-msg"><div id="cm-big"></div><div id="cm-sub"></div></div>
+    <div id="hint">WASD / Arrows drive · <b>SHIFT</b> drift · tap <b>W</b> to pivot · <b>SPACE</b> / click use item · <b>TAB</b> scoreboard · <b>ESC</b> menu</div>
+    <div id="scoreboard" class="hidden"></div>
+  </div>
+
+  <!-- ============================== MENU SCREENS ============================== -->
+  <div id="screens">
+    <section id="scr-main" class="screen menu">
+      <div class="topbar">
+        <div class="profile">
+          <div class="avatar" id="avatar">🏎️</div>
+          <div class="pinfo">
+            <input id="in-name" maxlength="14" placeholder="Sigma Driver" autocomplete="off" />
+            <div class="xp"><div class="xpfill" id="xpfill"></div><span id="xptxt">Lv 1</span></div>
+          </div>
+        </div>
+        <div class="logo">BRAINROT<span>KARTS</span></div>
+        <div class="topright">
+          <div class="coins">🪙 <b id="coins">0</b></div>
+          <button class="roundbtn" id="btn-settings" title="Settings &amp; Kill Sound">⚙</button>
+          <button class="roundbtn" id="btn-help" title="How to Play">?</button>
+        </div>
+      </div>
+      <div class="menu-body">
+        <aside class="side">
+          <div class="tabs"><span class="tab on">News</span><span class="tab">Weapons</span></div>
+          <div class="newslist">
+            <div class="news"><span class="new">NEW</span><b>Rocket Launcher</b><small>3 straight rockets. Two hits and they are toast.</small></div>
+            <div class="news"><span class="new">NEW</span><b>Invincible Bubble</b><small>Ram karts to pop them. Blocks every weapon.</small></div>
+            <div class="news"><span class="new">NEW</span><b>Auto Machine Gun</b><small>Roof gun shoots whoever gets close.</small></div>
+            <div class="news"><b>Pivot steering</b><small>Tap W fast to spin on a dime.</small></div>
+            <div class="news"><b>Rooms</b><small>Create a room and share the 5-digit ID.</small></div>
+          </div>
+        </aside>
+        <div class="center">
+          <canvas id="kart-prev"></canvas>
+          <button class="playbtn" id="btn-solo">PLAY <i>▶</i></button>
+          <div class="row split">
+            <button class="btn alt" id="btn-create">🏠 CREATE</button>
+            <button class="btn alt" id="btn-joinroom">🔑 JOIN</button>
+          </div>
+        </div>
+        <aside class="side custom">
+          <h4>Customize</h4>
+          <label>Kart color</label>
+          <div id="swatches" class="chips"></div>
+          <label>Driver</label>
+          <div id="heads" class="chips"></div>
+          <div class="tagline">Tung tung tung. Drive. Fart. Detonate. Repeat.</div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="scr-solo" class="screen hidden">
+      <h2>CHOOSE YOUR ARENA</h2>
+      <div id="map-cards" class="cards"></div>
+      <div class="panel wide">
+        <div class="grid3">
+          <div><label for="in-bots">Bots: <b id="bots-val">5</b></label><input type="range" id="in-bots" min="1" max="7" value="5" /></div>
+          <div><label for="in-dur">Match length</label>
+            <select id="in-dur"><option value="120">2 minutes</option><option value="180" selected>3 minutes</option><option value="300">5 minutes</option></select></div>
+          <div><label for="in-diff">Bot difficulty</label>
+            <select id="in-diff"><option value="chill">Chill</option><option value="normal" selected>Normal</option><option value="sweaty">Sweaty</option></select></div>
+        </div>
+        <div class="row"><button class="btn" data-back>◀ Back</button><button class="btn big go" id="btn-start-solo">START MATCH</button></div>
+      </div>
+    </section>
+
+    <section id="scr-join" class="screen hidden">
+      <h2>JOIN ROOM</h2>
+      <div class="panel narrow">
+        <label for="in-joinid">Room ID</label>
+        <input id="in-joinid" class="bigcode" inputmode="numeric" maxlength="5" placeholder="12345" autocomplete="off" />
+        <div id="join-status" class="status"></div>
+        <div class="row"><button class="btn" data-back>◀ Back</button><button class="btn big go" id="btn-join">JOIN</button></div>
+      </div>
+    </section>
+
+    <section id="scr-create" class="screen hidden">
+      <div class="codebar">ROOM ID <b id="create-code">00000</b> <button class="btn small" id="btn-newcode" title="New random ID">🎲</button></div>
+      <div class="panel wide scroll">
+        <div class="grid3">
+          <div><label for="cr-map">Map</label><select id="cr-map"></select></div>
+          <div><label for="cr-max">Players</label>
+            <select id="cr-max"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option selected>8</option></select></div>
+          <div><label for="cr-dur">Round time</label>
+            <select id="cr-dur"><option value="60">1 minute</option><option value="120">2 minutes</option><option value="180" selected>3 minutes</option><option value="300">5 minutes</option><option value="600">10 minutes</option></select></div>
+        </div>
+        <label>Weapons allowed <span class="linkish" id="w-all">all</span> · <span class="linkish" id="w-none">none</span></label>
+        <div id="cr-weapons" class="wgrid"></div>
+        <div id="create-status" class="status"></div>
+        <div class="row"><button class="btn" data-back>◀ Back</button><button class="btn big go" id="btn-create-go">CREATE ROOM</button></div>
+      </div>
+    </section>
+
+    <section id="scr-online" class="screen hidden">
+      <div class="codebar">ROOM ID <b id="lobby-code">00000</b> <button class="btn small" id="btn-copycode" title="Copy ID">📋</button></div>
+      <div class="panel wide">
+        <div id="lobby-players" class="plist"></div>
+        <div id="lobby-settings" class="note"></div>
+        <div id="lobby-status" class="status"></div>
+        <div class="row"><button class="btn" id="btn-leave">◀ Leave room</button><button class="btn big go" id="btn-start-online">START MATCH</button></div>
+      </div>
+    </section>
+
+    <section id="scr-settings" class="screen hidden">
+      <h2>SETTINGS</h2>
+      <div class="panel wide scroll">
+        <h3>💀 Kill sound</h3>
+        <p class="note">Played whenever <b>you</b> destroy another kart.</p>
+        <div class="grid2">
+          <div><label for="kill-select">Sound</label><select id="kill-select"></select></div>
+          <div><label for="vol-kill">Kill volume</label><input type="range" id="vol-kill" min="0" max="1.5" step="0.05" value="1" /></div>
+        </div>
+        <div class="row left">
+          <button class="btn alt" id="btn-upload">⬆ Upload MP3 / WAV</button>
+          <input type="file" id="kill-file" accept="audio/mpeg,audio/wav,audio/x-wav,audio/mp3,audio/ogg,.mp3,.wav,.ogg" hidden />
+          <button class="btn" id="btn-kill-test">▶ Test</button>
+          <button class="btn" id="btn-kill-clear">🗑 Remove custom</button>
+        </div>
+        <div id="kill-info" class="status"></div>
+        <div class="grid2">
+          <div><label for="kill-max">Max length of uploaded sounds: <b id="kill-max-val">4</b>s</label><input type="range" id="kill-max" min="1" max="10" step="1" value="4" /></div>
+          <div></div>
+        </div>
+
+        <h3>🔊 Audio</h3>
+        <div class="grid3">
+          <div><label for="vol-master">Master</label><input type="range" id="vol-master" min="0" max="1" step="0.05" /></div>
+          <div><label for="vol-sfx">Effects</label><input type="range" id="vol-sfx" min="0" max="1" step="0.05" /></div>
+          <div><label for="vol-music">Music</label><input type="range" id="vol-music" min="0" max="1" step="0.05" /></div>
+        </div>
+        <div class="checks">
+          <label><input type="checkbox" id="opt-music" /> Music</label>
+          <label><input type="checkbox" id="opt-announcer" /> Announcer voice (speech)</label>
+          <label><input type="checkbox" id="opt-shake" /> Screen shake</label>
+        </div>
+
+        <h3>🌐 Online</h3>
+        <label for="in-server">Server address (leave as is unless hosting elsewhere)</label>
+        <input id="in-server" autocomplete="off" />
+
+        <h3>🖥 Graphics</h3>
+        <div class="grid2">
+          <div><label for="opt-quality">Quality</label>
+            <select id="opt-quality"><option value="high">High</option><option value="medium">Medium</option><option value="low">Low (fast)</option></select></div>
+          <div class="checks"><label><input type="checkbox" id="opt-shadows" /> Shadows</label></div>
+        </div>
+        <div class="row"><button class="btn big go" id="btn-settings-back">DONE</button></div>
+      </div>
+    </section>
+
+    <section id="scr-help" class="screen hidden">
+      <h2>HOW TO PLAY</h2>
+      <div class="panel wide scroll">
+        <p>Drive around the arena, grab <b>❓ item boxes</b>, and blow up everyone else. Most kills when the clock runs out wins. You respawn a few seconds after you die.</p>
+        <table class="keys">
+          <tr><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / arrows</td><td>Drive &amp; steer</td></tr>
+          <tr><td><kbd>Shift</kbd> (or <kbd>V</kbd>)</td><td>Hold while steering at speed to <b>drift</b>. The longer you hold, the bigger the mini-turbo on release (blue → orange → purple sparks).</td></tr>
+          <tr><td>Tap <kbd>W</kbd> rapidly</td><td><b>Pivot steering</b>: pulsing the gas loosens your momentum so you can spin around on a dime (donuts in one spot).</td></tr>
+          <tr><td><kbd>Space</kbd> / <kbd>E</kbd> / click</td><td>Use your item (hold for Fart Blast)</td></tr>
+          <tr><td><kbd>Tab</kbd></td><td>Hold for the scoreboard</td></tr>
+          <tr><td><kbd>Esc</kbd></td><td>Pause / menu</td></tr>
+          <tr><td>Gamepad</td><td>Left stick steer · RT/A gas · LT brake · B/LB drift · X/RB item</td></tr>
+        </table>
+        <div id="help-items" class="items-list"></div>
+        <p class="note">Green slime slows you down. You can only hold one item at a time.</p>
+        <div class="row"><button class="btn big go" data-back>GOT IT</button></div>
+      </div>
+    </section>
+
+    <section id="scr-pause" class="screen hidden dim">
+      <h2>PAUSED</h2>
+      <div class="panel narrow">
+        <button class="btn big go" id="btn-resume">▶ Resume</button>
+        <button class="btn" id="btn-pause-settings">⚙ Settings &amp; Kill Sound</button>
+        <button class="btn danger" id="btn-quit">✖ Quit to menu</button>
+      </div>
+    </section>
+
+    <section id="scr-results" class="screen hidden dim">
+      <h2 id="res-title">MATCH OVER</h2>
+      <div class="panel wide">
+        <div id="res-winner"></div>
+        <table id="res-table" class="score"></table>
+        <div class="row"><button class="btn" id="btn-res-menu">Menu</button><button class="btn big go" id="btn-res-again">PLAY AGAIN</button></div>
+      </div>
+    </section>
+  </div>
+
+  <div id="toast"></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sound trimmer (dev tool)</title>
+<style>
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #dff0ff; color: #12337a; max-width: 760px; margin: 30px auto; padding: 0 16px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  p { margin: 4px 0 14px; color: #4766b8; }
+  canvas { width: 100%; height: 110px; background: #fff; border: 3px solid #9cc4ff; border-radius: 12px; cursor: crosshair; display: block; box-sizing: border-box; }
+  label { display: block; font-weight: 700; margin-top: 14px; }
+  input[type=range] { width: 100%; }
+  select, button { font: 700 16px 'Segoe UI', sans-serif; padding: 10px 18px; border-radius: 10px; border: 0; background: #2f7bff; color: #fff; cursor: pointer; margin: 12px 8px 0 0; }
+  button.play { background: #ff8a00; }
+  pre { background: #12337a; color: #ffe45a; padding: 14px; border-radius: 12px; font-size: 16px; user-select: all; }
+</style>
+</head>
+<body>
+  <h1>Sound trimmer</h1>
+  <p>Pick a clip, click the wave or drag the sliders, press Play, then copy the line at the bottom into <b>src/audio.js</b>. (Dev tool only, not part of the game.)</p>
+  <select id="clip">
+    <option value="/sounds/cid-le-mdc.mp3" data-name="KILL_CLIP">Kill sound: Cid le MDC</option>
+    <option value="/sounds/death-whoooo.mp3" data-name="DEATH_CLIP">Death sound: Whoooo yeleeee</option>
+  </select>
+  <canvas id="wave" width="1400" height="220"></canvas>
+  <label>Start at: <span id="sv">0.00</span> s <input id="start" type="range" min="0" max="12" step="0.01" value="0" /></label>
+  <label>Length: <span id="lv">1.20</span> s <input id="len" type="range" min="0.2" max="6" step="0.05" value="1.2" /></label>
+  <button class="play" id="play">▶ Play slice</button><button id="full">▶ Whole clip</button><button id="stop">■ Stop</button>
+  <p>Replace the matching line in <code>src/audio.js</code> with:</p>
+  <pre id="out"></pre>
+<script>
+const $ = (id) => document.getElementById(id);
+const ctx = new (window.AudioContext || window.webkitAudioContext)();
+let buf = null, src = null;
+const cv = $('wave'), g = cv.getContext('2d');
+
+function draw() {
+  const W = cv.width, H = cv.height;
+  g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
+  if (!buf) return;
+  const d = buf.getChannelData(0), step = Math.floor(d.length / W);
+  const s = +$('start').value, l = +$('len').value;
+  const x0 = (s / buf.duration) * W, x1 = Math.min(W, x0 + (l / buf.duration) * W);
+  g.fillStyle = 'rgba(255,165,26,0.3)'; g.fillRect(x0, 0, x1 - x0, H);
+  for (let x = 0; x < W; x++) {
+    let m = 0;
+    for (let i = 0; i < step; i += 8) m = Math.max(m, Math.abs(d[x * step + i] || 0));
+    g.fillStyle = x >= x0 && x <= x1 ? '#ff8a00' : '#2f7bff';
+    g.fillRect(x, H / 2 - m * H * 0.48, 1, Math.max(1, m * H * 0.96));
+  }
+}
+function update() {
+  const name = $('clip').selectedOptions[0].dataset.name;
+  $('sv').textContent = (+$('start').value).toFixed(2); $('lv').textContent = (+$('len').value).toFixed(2);
+  $('out').textContent = `export const ${name} = { start: ${(+$('start').value).toFixed(2)}, length: ${(+$('len').value).toFixed(2)} };`;
+  draw();
+}
+function play(from, length) {
+  if (!buf) return;
+  ctx.resume(); stop();
+  src = ctx.createBufferSource(); src.buffer = buf;
+  const gn = ctx.createGain(), t = ctx.currentTime, fade = Math.min(0.12, length / 3);
+  gn.gain.setValueAtTime(0, t); gn.gain.linearRampToValueAtTime(1, t + 0.008);
+  gn.gain.setValueAtTime(1, t + length - fade); gn.gain.linearRampToValueAtTime(0, t + length);   // same fades as the game
+  src.connect(gn); gn.connect(ctx.destination); src.start(t, from, length);
+}
+function stop() { try { src?.stop(); } catch { /* not started */ } }
+function load() {
+  buf = null; update();
+  fetch($('clip').value).then((r) => r.arrayBuffer()).then((a) => ctx.decodeAudioData(a)).then((b) => {
+    buf = b; $('start').max = (b.duration - 0.1).toFixed(2); update();
+  });
+}
+$('clip').onchange = load;
+$('start').oninput = $('len').oninput = update;
+$('start').onchange = $('len').onchange = () => play(+$('start').value, +$('len').value);
+cv.onclick = (e) => { if (!buf) return; const r = cv.getBoundingClientRect(); $('start').value = Math.max(0, Math.min(buf.duration - 0.1, ((e.clientX - r.left) / r.width) * buf.duration)); update(); play(+$('start').value, +$('len').value); };
+$('play').onclick = () => play(+$('start').value, +$('len').value);
+$('full').onclick = () => play(0, buf.duration);
+$('stop').onclick = stop;
+load();
+</script>
+</body>
+</html>
